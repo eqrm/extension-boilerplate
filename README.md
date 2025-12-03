@@ -34,6 +34,49 @@ Copy `.env-example` to `.env` and fill in your data.
 
 In the `.env` file, configure the necessary constants for your project. This file is included in `.gitignore` to prevent sensitive data from being committed to version control.
 
+### Supabase Authentication Setup
+
+This extension uses ChurchTools OAuth with Supabase as the authentication backend.
+
+#### 1. ChurchTools OAuth Configuration
+
+In ChurchTools, configure the OAuth application with:
+- **Redirect URI:** `http://localhost:5173` (for development)
+- **API Basis URL:** `https://eqrm.church.tools/`
+- **Authorization URL:** `https://eqrm.church.tools/oauth/authorize`
+- **Access Token URL:** `https://eqrm.church.tools/oauth/access_token`
+- **Profile URL:** `https://eqrm.church.tools/oauth/userinfo`
+
+#### 2. Supabase Edge Function Secrets
+
+Deploy the Edge Function and set these secrets in your Supabase project:
+
+```bash
+# Set the required environment variables for the Edge Function
+supabase secrets set CHURCHTOOLS_URL=https://eqrm.church.tools
+supabase secrets set CHURCHTOOLS_CLIENT_ID=a0e5bb7b6241e873104f8dda7fab9d80c4cc5bd433b052226b22971156c4176b
+```
+
+> **Note:** `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are automatically available in Supabase Edge Functions.
+
+#### 3. Deploy the Edge Function
+
+```bash
+supabase functions deploy churchtools-callback
+```
+
+#### 4. Environment Variables
+
+Configure these in your `.env` file:
+
+| Variable | Description |
+|----------|-------------|
+| `VITE_SUPABASE_URL` | Your Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Your Supabase anonymous key |
+| `VITE_CHURCHTOOLS_URL` | ChurchTools instance URL |
+| `VITE_CHURCHTOOLS_CLIENT_ID` | ChurchTools OAuth client ID |
+| `VITE_OAUTH_CALLBACK_URL` | OAuth redirect URI (matches ChurchTools config) |
+
 ## Development and Deployment
 
 ### Development Server
