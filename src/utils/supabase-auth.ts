@@ -11,6 +11,7 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 // Callback URLs
 const OAUTH_CALLBACK_URL = import.meta.env.VITE_OAUTH_CALLBACK_URL || 'http://localhost:5173';
 const SUPABASE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/churchtools-callback`;
+const STATE_TOKEN_URL = `${SUPABASE_URL}/functions/v1/generate-state-token`;
 
 // Create Supabase client
 export const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -50,13 +51,36 @@ const CODE_VERIFIER_KEY = 'churchtools_oauth_code_verifier';
 const STATE_KEY = 'churchtools_oauth_state';
 
 /**
+ * Fetches a secure HMAC-signed state token from the Supabase Edge Function
+ * This is used for CSRF protection in the OAuth flow
+ */
+async function getSecureStateToken(): Promise<string> {
+    const response = await fetch(STATE_TOKEN_URL, {
+        method: 'GET',
+        headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+    });
+    
+    if (!response.ok) {
+        throw new Error('Failed to generate secure state token');
+    }
+    
+    const data = await response.json();
+    return data.state;
+}
+
+/**
  * Initiates the OAuth flow by redirecting to ChurchTools authorization endpoint
  */
 export async function startOAuthFlow(): Promise<void> {
     // Generate PKCE values
     const codeVerifier = generateRandomString(64);
     const codeChallenge = await generateCodeChallenge(codeVerifier);
-    const state = generateRandomString(32);
+    
+    // Get secure HMAC-signed state token from server
+    const state = await getSecureStateToken();
 
     // Store values for callback verification
     sessionStorage.setItem(CODE_VERIFIER_KEY, codeVerifier);
@@ -128,6 +152,7 @@ export async function handleOAuthCallback(): Promise<{ session: Session | null; 
                 code,
                 code_verifier: codeVerifier,
                 redirect_uri: OAUTH_CALLBACK_URL,
+                state: storedState,
             }),
         });
 
